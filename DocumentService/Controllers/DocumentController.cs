@@ -25,6 +25,14 @@ namespace DocumentService.Controllers
             return new string[] { "hi", "working" };
         }
 
+        public IEnumerable<List<T>> SplitList<T>(List<T> listItem, int nSize = 20)
+        {
+            for (int i = 0; i < listItem.Count; i += nSize)
+            {
+                yield return listItem.GetRange(i, Math.Min(nSize, listItem.Count - i));
+            }
+        }
+
         private byte[] GenerateDailyInspectionReport(List<Inspection> inspections, bool pdf)
         {
             var accepted = inspections.Where(i => i.Status.Equals(InspectionStatus.Part_Accepted)).Count();
@@ -46,54 +54,11 @@ namespace DocumentService.Controllers
             chart.ChartData["E3"].NumberValue = chart.ChartData["C2"].NumberValue - chart.ChartData["C3"].NumberValue;
             chart.ChartData["E4"].NumberValue = chart.ChartData["C2"].NumberValue - chart.ChartData["C3"].NumberValue;
 
-            ppt.Slides.Append();
-
-            Double[] heights = new double[inspections.Count + 1];
-            for (int rowIndex = 0; rowIndex <= inspections.Count; rowIndex++)
+            var numOfInspectionsPerPage = 15;
+            List<List<Inspection>> inspectionSubLists = SplitList(inspections, numOfInspectionsPerPage).ToList();
+            for (var subListIndex = 0; subListIndex < inspectionSubLists.Count; subListIndex++)
             {
-                heights[rowIndex] = 2;
-            }
-            int columnCount = 6;
-            Double[] widths = new double[columnCount];
-            for (int columnIndex = 0; columnIndex < columnCount; columnIndex++)
-            {
-                widths[columnIndex] = 100;
-                if (columnIndex == 3 || columnIndex == 4)
-                {
-                    widths[columnIndex] = 200;
-                }
-            }
-            ITable table = ppt.Slides[2].Shapes.AppendTable(ppt.SlideSize.Size.Width / 2 - 400, 40, widths, heights);
-            //ITable table = ppt.Slides[2].Shapes.AppendTable(10, 40, widths, heights);
-            table.StylePreset = TableStylePreset.DarkStyle1Accent1;
-            // Table Header
-            table[0, 0].TextFrame.Text = "S No";
-            table[1, 0].TextFrame.Text = "Part Inspected";
-            table[2, 0].TextFrame.Text = "Supplier";
-            table[3, 0].TextFrame.Text = "Inspector";
-            table[4, 0].TextFrame.Text = "Inspection Date";
-            table[5, 0].TextFrame.Text = "Status";
-
-            //data fill
-            for (int row = 0; row < inspections.Count; row++)
-            {
-                table[0, row + 1].TextFrame.Text = (row + 1).ToString();
-                table[1, row + 1].TextFrame.Text = inspections[row].PartNo;
-                table[2, row + 1].TextFrame.Text = inspections[row].SupplierName;
-                table[3, row + 1].TextFrame.Text = inspections[row].UserCreated;
-                table[4, row + 1].TextFrame.Text = inspections[row].DateCreated.ToString();
-                table[5, row + 1].TextFrame.Text = inspections[row].Status.ToString();
-            }
-
-            // table style
-            for (int column = 0; column < 6; column++)
-            {
-                for (int row = 1; row <= inspections.Count; row++)
-                {
-                    table[column, row].TextFrame.Paragraphs[0].TextRanges[0].LatinFont = new TextFont("Calibri");
-                    table[column, row].TextFrame.Paragraphs[0].TextRanges[0].Format.FontHeight = 10;
-                    table[column, 0].TextFrame.Paragraphs[0].Alignment = TextAlignmentType.Center;
-                }
+                InsertInspectionTable(ref ppt, inspectionSubLists[subListIndex], numOfInspectionsPerPage, (subListIndex + 1));
             }
 
             chart.ChartTitle.TextProperties.Text = "Daily Inspection Report";
@@ -142,54 +107,11 @@ namespace DocumentService.Controllers
             chart.ChartData["E3"].NumberValue = chart.ChartData["C2"].NumberValue - chart.ChartData["C3"].NumberValue;
             chart.ChartData["E4"].NumberValue = chart.ChartData["C2"].NumberValue - chart.ChartData["C3"].NumberValue;
 
-            ppt.Slides.Append();
-
-            Double[] heights = new double[inspections.Count + 1];
-            for (int rowIndex = 0; rowIndex <= inspections.Count; rowIndex++)
+            var numOfInspectionsPerPage = 15;
+            List<List<Inspection>> inspectionSubLists = SplitList(inspections, numOfInspectionsPerPage).ToList();
+            for (var subListIndex = 0; subListIndex < inspectionSubLists.Count; subListIndex++)
             {
-                heights[rowIndex] = 2;
-            }
-            int columnCount = 6;
-            Double[] widths = new double[columnCount];
-            for (int columnIndex = 0; columnIndex < columnCount; columnIndex++)
-            {
-                widths[columnIndex] = 100;
-                if (columnIndex == 3 || columnIndex == 4)
-                {
-                    widths[columnIndex] = 200;
-                }
-            }
-            ITable table = ppt.Slides[2].Shapes.AppendTable(ppt.SlideSize.Size.Width / 2 - 400, 40, widths, heights);
-            //ITable table = ppt.Slides[2].Shapes.AppendTable(10, 40, widths, heights);
-            table.StylePreset = TableStylePreset.DarkStyle1Accent1;
-            // Table Header
-            table[0, 0].TextFrame.Text = "S No";
-            table[1, 0].TextFrame.Text = "Part Inspected";
-            table[2, 0].TextFrame.Text = "Supplier";
-            table[3, 0].TextFrame.Text = "Inspector";
-            table[4, 0].TextFrame.Text = "Inspection Date";
-            table[5, 0].TextFrame.Text = "Status";
-
-            //data fill
-            for (int row = 0; row < inspections.Count; row++)
-            {
-                table[0, row + 1].TextFrame.Text = (row + 1).ToString();
-                table[1, row + 1].TextFrame.Text = inspections[row].PartNo;
-                table[2, row + 1].TextFrame.Text = inspections[row].SupplierName;
-                table[3, row + 1].TextFrame.Text = inspections[row].UserCreated;
-                table[4, row + 1].TextFrame.Text = inspections[row].DateCreated.ToString();
-                table[5, row + 1].TextFrame.Text = inspections[row].Status.ToString();
-            }
-
-            // table style
-            for (int column = 0; column < 6; column++)
-            {
-                for (int row = 1; row <= inspections.Count; row++)
-                {
-                    table[column, row].TextFrame.Paragraphs[0].TextRanges[0].LatinFont = new TextFont("Calibri");
-                    table[column, row].TextFrame.Paragraphs[0].TextRanges[0].Format.FontHeight = 10;
-                    table[column, 0].TextFrame.Paragraphs[0].Alignment = TextAlignmentType.Center;
-                }
+                InsertInspectionTable(ref ppt, inspectionSubLists[subListIndex], numOfInspectionsPerPage, (subListIndex + 1));
             }
 
             var partNo = inspections.First().PartNo;
@@ -242,54 +164,11 @@ namespace DocumentService.Controllers
             chart.ChartData["E3"].NumberValue = chart.ChartData["C2"].NumberValue - chart.ChartData["C3"].NumberValue;
             chart.ChartData["E4"].NumberValue = chart.ChartData["C2"].NumberValue - chart.ChartData["C3"].NumberValue;
 
-            ppt.Slides.Append();
-
-            Double[] heights = new double[inspections.Count + 1];
-            for (int rowIndex = 0; rowIndex <= inspections.Count; rowIndex++)
+            var numOfInspectionsPerPage = 15;
+            List<List<Inspection>> inspectionSubLists = SplitList(inspections, numOfInspectionsPerPage).ToList();
+            for (var subListIndex = 0; subListIndex < inspectionSubLists.Count; subListIndex++)
             {
-                heights[rowIndex] = 2;
-            }
-            int columnCount = 6;
-            Double[] widths = new double[columnCount];
-            for (int columnIndex = 0; columnIndex < columnCount; columnIndex++)
-            {
-                widths[columnIndex] = 100;
-                if (columnIndex == 3 || columnIndex == 4)
-                {
-                    widths[columnIndex] = 200;
-                }
-            }
-            ITable table = ppt.Slides[2].Shapes.AppendTable(ppt.SlideSize.Size.Width / 2 - 400, 40, widths, heights);
-            //ITable table = ppt.Slides[2].Shapes.AppendTable(10, 40, widths, heights);
-            table.StylePreset = TableStylePreset.DarkStyle1Accent1;
-            // Table Header
-            table[0, 0].TextFrame.Text = "S No";
-            table[1, 0].TextFrame.Text = "Part Inspected";
-            table[2, 0].TextFrame.Text = "Supplier";
-            table[3, 0].TextFrame.Text = "Inspector";
-            table[4, 0].TextFrame.Text = "Inspection Date";
-            table[5, 0].TextFrame.Text = "Status";
-
-            //data fill
-            for (int row = 0; row < inspections.Count; row++)
-            {
-                table[0, row + 1].TextFrame.Text = (row + 1).ToString();
-                table[1, row + 1].TextFrame.Text = inspections[row].PartNo;
-                table[2, row + 1].TextFrame.Text = inspections[row].SupplierName;
-                table[3, row + 1].TextFrame.Text = inspections[row].UserCreated;
-                table[4, row + 1].TextFrame.Text = inspections[row].DateCreated.ToString();
-                table[5, row + 1].TextFrame.Text = inspections[row].Status.ToString();
-            }
-
-            // table style
-            for (int column = 0; column < 6; column++)
-            {
-                for (int row = 1; row <= inspections.Count; row++)
-                {
-                    table[column, row].TextFrame.Paragraphs[0].TextRanges[0].LatinFont = new TextFont("Calibri");
-                    table[column, row].TextFrame.Paragraphs[0].TextRanges[0].Format.FontHeight = 10;
-                    table[column, 0].TextFrame.Paragraphs[0].Alignment = TextAlignmentType.Center;
-                }
+                InsertInspectionTable(ref ppt, inspectionSubLists[subListIndex], numOfInspectionsPerPage, (subListIndex + 1));
             }
 
             StringBuilder chartName = new StringBuilder("Inspector Performance Report - " + inspections[0].UserCreated.Substring(0, inspections[0].UserCreated.LastIndexOf('@')));
@@ -319,10 +198,140 @@ namespace DocumentService.Controllers
             return pptBuffer;
         }
 
+        private byte[] GenerateInspectorTargetPerformanceReport(List<Inspection> inspections, bool pdf, string inspectorTargetValue)
+        {
+            var accepted = inspections.Where(i => i.Status.Equals(InspectionStatus.Part_Accepted)).Count();
+            var rejected = inspections.Where(i => i.Status.Equals(InspectionStatus.Part_Rejected)).Count();
+            inspections = inspections.OrderByDescending(i => i.DateCreated).ToList();
+
+            var filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, @"Templates\inspector_time_target_performance_template.pptx");
+            Presentation ppt = new Presentation();
+            ppt.LoadFromFile(filePath, FileFormat.Pptx2010);
+
+            IChart chart = ppt.Slides[1].Shapes[0] as IChart;
+            var inspecorTargetData = inspections
+                .GroupBy(i => i.UserCreated)
+                .Select(i => new
+                {
+                    InspectorName = i.First().UserCreated,
+                    AverageInspectionTime = (i.Sum(it => it.TimeTakenInSec)) / i.Count()
+                })
+                .ToList();
+            var cellIndex = 2;
+            for (int dataIndex = 0; dataIndex < inspecorTargetData.Count; dataIndex++)
+            {
+                // inspector names
+                chart.ChartData[("A" + cellIndex.ToString())].Text = inspecorTargetData[dataIndex].InspectorName;
+                //inspector average time
+                chart.ChartData[("B" + cellIndex.ToString())].NumberValue = (inspecorTargetData[dataIndex].AverageInspectionTime)/3600;
+                // Extend target line
+                chart.ChartData[("C" + cellIndex.ToString())].NumberValue = double.Parse(inspectorTargetValue);
+                cellIndex++;
+            }
+            //var bCell =
+            chart.Series[0].Values = chart.ChartData["B2", ("B" + cellIndex.ToString())];
+            chart.Series[1].Values = chart.ChartData["C2", ("C" + cellIndex.ToString())];
+            chart.ChartData["B1"].Text = "Inspector Average Time";
+            chart.ChartData["C1"].Text = "Target Time";
+
+            var numOfInspectionsPerPage = 15;
+            List<List<Inspection>> inspectionSubLists = SplitList(inspections, numOfInspectionsPerPage).ToList();
+            for(var subListIndex = 0; subListIndex < inspectionSubLists.Count; subListIndex++)
+            {
+                InsertInspectionTable(ref ppt, inspectionSubLists[subListIndex], numOfInspectionsPerPage, (subListIndex + 1));
+            }            
+
+            StringBuilder chartName = new StringBuilder("Inspector Target Performance Report");
+            chart.ChartTitle.TextProperties.Text = chartName.ToString();
+
+            chart.Series[0].DataLabels.LabelValueVisible = true;
+            chart.Series[1].DataLabels.LabelValueVisible = true;
+
+            byte[] pptBuffer = null;
+            using (var ms = new MemoryStream())
+            {
+                if (pdf)
+                {
+                    ppt.SaveToFile(ms, FileFormat.PDF);
+                }
+                else
+                {
+                    ppt.SaveToFile(ms, FileFormat.Pptx2010);
+                }
+                pptBuffer = ms.ToArray();
+            }
+            return pptBuffer;
+        }
+
+        private void InsertInspectionTable(ref Presentation ppt, List<Inspection> inspections, int numOfInspectionsPerPage, int page = 1)
+        {
+            ppt.Slides.Append();
+            var IdCount = numOfInspectionsPerPage * (page - 1);
+
+            Double[] heights = new double[inspections.Count + 1];
+            for (int rowIndex = 0; rowIndex <= inspections.Count; rowIndex++)
+            {
+                heights[rowIndex] = 2;
+            }
+            int columnCount = 6;
+            Double[] widths = new double[columnCount];
+            for (int columnIndex = 0; columnIndex < columnCount; columnIndex++)
+            {
+                widths[columnIndex] = 100;
+                if (columnIndex == 3 || columnIndex == 4 || columnIndex == 2)
+                {
+                    widths[columnIndex] = 200;
+                }
+                if(columnIndex == 0)
+                {
+                    widths[columnIndex] = 50;
+                }
+            }
+            ITable table = ppt.Slides[(ppt.Slides.Count - 1)].Shapes.AppendTable(ppt.SlideSize.Size.Width / 2 - 400, 40, widths, heights);
+            table.StylePreset = TableStylePreset.DarkStyle1Accent1;
+            // Table Header
+            table[0, 0].TextFrame.Text = "S No";
+            table[1, 0].TextFrame.Text = "Part Inspected";
+            table[2, 0].TextFrame.Text = "Supplier";
+            table[3, 0].TextFrame.Text = "Inspector";
+            table[4, 0].TextFrame.Text = "Inspection Date";
+            table[5, 0].TextFrame.Text = "Status";
+
+            //data fill
+            for (int row = 0; row < inspections.Count; row++)
+            {
+                if(page > 1)
+                {
+                    table[0, row + 1].TextFrame.Text = (row + 1 + IdCount).ToString();
+                }    
+                else
+                {
+                    table[0, row + 1].TextFrame.Text = (row + 1).ToString();
+                }
+                table[1, row + 1].TextFrame.Text = inspections[row].PartNo;
+                table[2, row + 1].TextFrame.Text = inspections[row].SupplierName;
+                table[3, row + 1].TextFrame.Text = inspections[row].UserCreated;
+                table[4, row + 1].TextFrame.Text = inspections[row].DateCreated.ToString();
+                table[5, row + 1].TextFrame.Text = inspections[row].Status.ToString();
+            }
+
+            // table style
+            for (int column = 0; column < 6; column++)
+            {
+                for (int row = 1; row <= inspections.Count; row++)
+                {
+                    table[column, row].TextFrame.Paragraphs[0].TextRanges[0].LatinFont = new TextFont("Calibri");
+                    table[column, row].TextFrame.Paragraphs[0].TextRanges[0].Format.FontHeight = 10;
+                    table[column, row].TextFrame.Paragraphs[0].Alignment = TextAlignmentType.Center;
+                    table[column, 0].TextFrame.Paragraphs[0].Alignment = TextAlignmentType.Center;
+                }
+            }
+        }
+
         [HttpPost]
         [ResponseType(typeof(byte[]))]
         [Route("document/generatepptins")]
-        public HttpResponseMessage GeneratePptIns([FromBody]List<Inspection> inspections, bool pdf, string reportType)
+        public HttpResponseMessage GeneratePptIns([FromBody]List<Inspection> inspections, bool pdf, string reportType, string targetValue)
         {
             byte[] pptBuffer = null;
             switch (reportType)
@@ -335,6 +344,9 @@ namespace DocumentService.Controllers
                     break;
                 case "inspectorPerformanceReport":
                     pptBuffer = GenerateInspectorPerformanceReport(inspections, pdf);
+                    break;
+                case "inspectorTargetPerformanceReport":
+                    pptBuffer = GenerateInspectorTargetPerformanceReport(inspections, pdf, targetValue);
                     break;
             }
 
